@@ -4,6 +4,7 @@
   "main": "collect_enviroportal_list.js",
   "license": "MIT",
   "scripts": {
+    "postinstall": "npx playwright install --with-deps chromium",
     "collect": "node collect_enviroportal_list.js",
     "enrich:eia": "node enrich_eia_details.js data_raw/*_eia.json",
     "enrich:sea": "node enrich_eia_details.js data_raw/*_sea.json",
