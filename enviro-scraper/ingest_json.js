@@ -1,33 +1,24 @@
-// ingest_json.js (enviro_items-compliant)
+// ingest_json.js
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const { DATABASE_URL, PGSSL, WRITE_DB } = process.env;
-
-if (!DATABASE_URL) {
-  console.error('❌ Missing env DATABASE_URL');
-  process.exit(1);
-}
+if (!DATABASE_URL) { console.error('❌ Missing env DATABASE_URL'); process.exit(1); }
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: PGSSL === '1' ? { rejectUnauthorized: false } : false,
 });
 
-// --- tiny glob expander (supports single * in filename) -----------
 function expandPaths(pattern) {
   if (!pattern.includes('*')) return fs.existsSync(pattern) ? [pattern] : [];
   const dir = path.dirname(pattern);
   const base = path.basename(pattern);
   const esc = s => s.replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&');
   const re = new RegExp('^' + esc(base).replace(/\\\*/g, '.*') + '$');
-  try {
-    return fs.readdirSync(dir).filter(f => re.test(f)).map(f => path.join(dir, f));
-  } catch {
-    return [];
-  }
+  try { return fs.readdirSync(dir).filter(f => re.test(f)).map(f => path.join(dir, f)); } catch { return []; }
 }
 const uniq = arr => Array.from(new Set(arr));
 const bool = v => (v == null ? null : ['1','true','yes','y'].includes(String(v).toLowerCase()));
@@ -48,7 +39,8 @@ INSERT INTO enviro_items (
   raw_text_snippet, fetched_at,
   purpose, process_type, obstaravatel, obstaravatel_ico,
   dotknuta_obec, prislusny_organ, legal_basis, snippet,
-  detail_pairs
+  detail_pairs,
+  geo_lat, geo_lng, geo_precision, geo_source
 ) VALUES (
   $1,$2,$3,$4,$5,
   $6,$7,$8,$9,
@@ -57,7 +49,8 @@ INSERT INTO enviro_items (
   $16,$17,
   $18,$19,$20,$21,
   $22,$23,$24,$25,
-  $26
+  $26,
+  $27,$28,$29,$30
 )
 ON CONFLICT (detail_url) DO UPDATE SET
   source = EXCLUDED.source,
@@ -84,7 +77,11 @@ ON CONFLICT (detail_url) DO UPDATE SET
   prislusny_organ = COALESCE(EXCLUDED.prislusny_organ, enviro_items.prislusny_organ),
   legal_basis = COALESCE(EXCLUDED.legal_basis, enviro_items.legal_basis),
   snippet = COALESCE(EXCLUDED.snippet, enviro_items.snippet),
-  detail_pairs = COALESCE(EXCLUDED.detail_pairs, enviro_items.detail_pairs)
+  detail_pairs = COALESCE(EXCLUDED.detail_pairs, enviro_items.detail_pairs),
+  geo_lat = COALESCE(EXCLUDED.geo_lat, enviro_items.geo_lat),
+  geo_lng = COALESCE(EXCLUDED.geo_lng, enviro_items.geo_lng),
+  geo_precision = COALESCE(EXCLUDED.geo_precision, enviro_items.geo_precision),
+  geo_source = COALESCE(EXCLUDED.geo_source, enviro_items.geo_source)
 ;`;
 
   const vals = [
@@ -114,6 +111,10 @@ ON CONFLICT (detail_url) DO UPDATE SET
     r.legal_basis ?? null,
     r.snippet ?? null,
     toJsonb(r.detail_pairs ?? null),
+    r.geo_lat ?? null,
+    r.geo_lng ?? null,
+    r.geo_precision ?? null,
+    r.geo_source ?? null,
   ];
 
   await client.query(sql, vals);
@@ -124,18 +125,12 @@ async function main() {
   let files = [];
   for (const a of args) files.push(...expandPaths(a));
   files = uniq(files);
-  if (!files.length) {
-    console.error('❌ No input files found.');
-    process.exit(1);
-  }
-  console.log('📦 Files to ingest:', files);
+  if (!files.length) { console.error('❌ No input files found.'); process.exit(1); }
 
+  console.log('📦 Files to ingest:', files);
   const client = await pool.connect();
   try {
-    if (WRITE_DB !== '1') {
-      console.warn('⚠️ WRITE_DB != 1 → dry-run. Set WRITE_DB=1 to enable inserts.');
-    }
-
+    if (WRITE_DB !== '1') console.warn('⚠️ WRITE_DB != 1 → dry-run.');
     let total = 0;
     for (const file of files) {
       const arr = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -146,8 +141,7 @@ async function main() {
       let i = 0;
       for (const rec of arr) {
         await upsert(client, rec);
-        i++;
-        if (i % 100 === 0) process.stdout.write(`   ${i}/${arr.length}\r`);
+        i++; if (i % 100 === 0) process.stdout.write(`   ${i}/${arr.length}\r`);
       }
       await client.query('COMMIT');
       console.log(`   ✅ committed ${arr.length}`);
@@ -163,5 +157,4 @@ async function main() {
     await pool.end();
   }
 }
-
 main();
