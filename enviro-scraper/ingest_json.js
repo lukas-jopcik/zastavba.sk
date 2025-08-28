@@ -33,7 +33,7 @@ async function ingestOne(file) {
   await client.connect();
 
   const sql = `
-    INSERT INTO public.enviro_records (
+    INSERT INTO public.enviro_items (
       source, type, title, date, listed_date, region, municipality, okres, phase, cpv,
       buyer, value, detail_url, source_url, has_pdf, raw_text_snippet, fetched_at,
       purpose, process_type, obstaravatel, obstaravatel_ico, dotknuta_obec,
