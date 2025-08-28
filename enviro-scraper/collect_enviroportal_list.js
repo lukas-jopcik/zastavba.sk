@@ -5,7 +5,7 @@ const path = require('path');
 const dayjs = require('dayjs');
 
 const START_URL = 'https://www.enviroportal.sk/eia-sea/informacny-system';
-const MAX_PAGES = parseInt(process.env.MAX_PAGES || '1', 10); // môžeš dočasne znížiť napr. na 2 pri testovaní
+const MAX_PAGES = parseInt(process.env.MAX_PAGES || '930', 10); // môžeš dočasne znížiť napr. na 2 pri testovaní
 
 // --- dirs ------------------------------------------------------
 const RAW_DIR = path.join(process.cwd(), 'data_raw');
