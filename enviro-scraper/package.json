@@ -9,8 +9,7 @@
     "enrich:sea": "node enrich_eia_details.js data_raw/*_sea.json",
     "ingest:eia": "node ingest_json.js data_enriched/*_eia_enriched.json",
     "ingest:sea": "node ingest_json.js data_enriched/*_sea_enriched.json",
-    "run:all": "node collect_enviroportal_list.js && node enrich_eia_details.js data_raw/$(date +%F)_eia.json && node enrich_eia_details.js data_raw/$(date +%F)_sea.json"
-  },
+    "run:all": "node run_all.js"
   "dependencies": {
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
