@@ -1,0 +1,19 @@
+{
+  "name": "enviroportal-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "worker": "node worker.js",
+    "list": "node collect_enviroportal_list.js",
+    "enrich": "node enrich_eia_details.js",
+    "normalize": "node normalize_and_geocode.js",
+    "migrate": "node -e \"import('pg').then(async m=>{const {Client}=m;const c=new Client({connectionString:process.env.DATABASE_URL,ssl:process.env.DATABASE_URL?.includes('railway.app')?{rejectUnauthorized:false}:false});await c.connect();const fs=require('fs');const sql=fs.readFileSync('./sql/001_init.sql','utf8');await c.query(sql);await c.end();console.log('DB migrated');})\""
+  },
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "node-fetch": "^3.3.2",
+    "p-retry": "^6.0.0",
+    "pg": "^8.11.3",
+    "playwright": "^1.45.0"
+  }
+}
