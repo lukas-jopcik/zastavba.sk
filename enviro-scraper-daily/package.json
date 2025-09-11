@@ -1,0 +1,22 @@
+{
+  "name": "enviro-scraper",
+  "version": "1.0.0",
+  "main": "collect_enviroportal_list.js",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "npx playwright install --with-deps chromium",
+    "collect": "node collect_enviroportal_list.js",
+    "enrich:eia": "node enrich_eia_details.js data_raw/*_eia.json",
+    "enrich:sea": "node enrich_eia_details.js data_raw/*_sea.json",
+    "ingest:eia": "node ingest_json.js data_enriched/*_eia_enriched.json",
+    "ingest:sea": "node ingest_json.js data_enriched/*_sea_enriched.json",
+    "run:all": "node run_all.js",
+    "run:latest": "node run_latest.js"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.18",
+    "dotenv": "^16.4.5",
+    "pg": "^8.11.3",
+    "playwright": "^1.45.3"
+  }
+}
